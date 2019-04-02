@@ -10,32 +10,39 @@ import com.hychul.multiplex.server.handler.AcceptHandler;
 import com.hychul.multiplex.server.handler.Handler;
 
 public class Server {
-    private final Selector selector;
+    private final Selector parentSelector;
+    private final Selector childSelector;
     private final ServerSocketChannel serverSocketChannel;
 
-    private Thread dispatcherThread;
-
     public Server(int port) throws IOException {
-        selector = Selector.open();
+        parentSelector = Selector.open();
+        childSelector = Selector.open();
+
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT).attach(new AcceptHandler(selector, serverSocketChannel));
-        dispatcherThread = new Thread(null, new Dispatcher(), "dispatcher-thread");
+        serverSocketChannel.register(parentSelector, SelectionKey.OP_ACCEPT).attach(new AcceptHandler(childSelector, serverSocketChannel));
     }
 
     public void start() {
-        dispatcherThread.start();
+        System.out.println(String.format("[%s] %s: %s", Thread.currentThread().getName(), "listening port", serverSocketChannel.socket().getLocalPort()));
+        new Thread(null, new EventLoop(parentSelector), "acceptor-thread").start();
+        new Thread(null, new EventLoop(childSelector), "dispatcher-thread").start();
     }
 
-    class Dispatcher implements Runnable {
+    class EventLoop implements Runnable {
+        Selector selector;
+
+        EventLoop(Selector selector) {
+            this.selector = selector;
+        }
+
         @Override
         public void run() {
-            System.out.println("listening port: \"" + serverSocketChannel.socket().getLocalPort() + "\"");
             try {
                 while (!Thread.interrupted()) {
                     selector.select();
-                    selector.selectedKeys().forEach(this::dispatch);
+                    selector.selectedKeys().forEach(this::process);
                     selector.selectedKeys().clear();
                 }
             } catch (IOException ex) {
@@ -43,7 +50,7 @@ public class Server {
             }
         }
 
-        private void dispatch(SelectionKey key) {
+        private void process(SelectionKey key) {
             var handler = (Handler) key.attachment();
 
             try {

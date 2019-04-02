@@ -15,14 +15,6 @@ import java.util.concurrent.ThreadFactory;
 
 public class ProcessHandler implements Handler {
 
-    private static ExecutorService pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
-        int threadCount = 0;
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(null, r, "reactive-thread-" + threadCount++);
-        }
-    });
-
     private final SocketChannel socketChannel;
     private final SelectionKey selectionKey;
 
@@ -50,50 +42,40 @@ public class ProcessHandler implements Handler {
     }
 
     private void read() throws IOException {
-        System.out.println("read " + Thread.currentThread().getName());
+        System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "read"));
 
         int readCount = socketChannel.read(input);
         if (0 < readCount) {
             state = PROCESSING;
-            pool.execute(new Processor(readCount));
+            process(readCount);
             selectionKey.interestOps(SelectionKey.OP_WRITE);
         } else if (readCount < 0) {
             socketChannel.close();
         }
     }
 
-    private void write() throws IOException {
-        System.out.println("write " + Thread.currentThread().getName());
+    public synchronized void process(int readCount) {
+        System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "process"));
 
-        System.out.print("write message: " + message);
+        StringBuilder sb = new StringBuilder();
+        input.flip();
+        byte[] subStringBytes = new byte[readCount];
+        byte[] array = input.array();
+        System.arraycopy(array, 0, subStringBytes, 0, readCount);
+        sb.append(new String(subStringBytes));
+        input.clear();
+        message = sb.toString();
+
+        state = WRITING;
+    }
+
+    private void write() throws IOException {
+        System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "write"));
 
         ByteBuffer output = ByteBuffer.wrap(message.getBytes());
         socketChannel.write(output);
 
         state = READING;
         selectionKey.interestOps(SelectionKey.OP_READ);
-    }
-
-    class Processor implements Runnable {
-        private int readCount;
-
-        Processor(int readCount) {
-            this.readCount = readCount;
-        }
-
-        public synchronized void run() {
-            System.out.println("process " + Thread.currentThread().getName());
-
-            StringBuilder sb = new StringBuilder();
-            input.flip();
-            byte[] subStringBytes = new byte[readCount];
-            byte[] array = input.array();
-            System.arraycopy(array, 0, subStringBytes, 0, readCount);
-            sb.append(new String(subStringBytes));
-            input.clear();
-            message = sb.toString();
-
-            state = WRITING;
-        }
     }
 }

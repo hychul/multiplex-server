@@ -22,7 +22,7 @@ public class AcceptHandler implements Handler {
             }
 
             new ProcessHandler(selector, socketChannel);
-            System.out.println("new client accepted");
+            System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "new client accepted"));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
