@@ -9,18 +9,18 @@ import java.nio.channels.ServerSocketChannel;
 import com.hychul.multiplex.server.handler.AcceptHandler;
 import com.hychul.multiplex.server.handler.Handler;
 
-public class Server {
+public class NioServer {
     private final Selector selector;
     private final ServerSocketChannel serverSocketChannel;
 
     private Thread dispatcherThread;
 
-    public Server(int port) throws IOException {
+    public NioServer(int port, boolean asyncMode) throws IOException {
         selector = Selector.open();
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT).attach(new AcceptHandler(selector, serverSocketChannel));
+        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT).attach(new AcceptHandler(selector, serverSocketChannel, asyncMode));
         dispatcherThread = new Thread(null, new Dispatcher(), "dispatcher-thread");
     }
 

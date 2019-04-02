@@ -13,8 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
-public class ProcessHandler implements Handler {
-
+public class AsyncProcessHandler implements Handler {
     private static ExecutorService pool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
         int threadCount = 0;
         @Override
@@ -31,7 +30,7 @@ public class ProcessHandler implements Handler {
     private ByteBuffer input = ByteBuffer.allocate(1024);
     private String message = "";
 
-    public ProcessHandler(Selector selector, SocketChannel socketChannel) throws IOException {
+    public AsyncProcessHandler(Selector selector, SocketChannel socketChannel) throws IOException {
         this.socketChannel = socketChannel;
         this.socketChannel.configureBlocking(false);
         selectionKey = this.socketChannel.register(selector, 0);
@@ -79,6 +78,7 @@ public class ProcessHandler implements Handler {
             this.readCount = readCount;
         }
 
+        @Override
         public synchronized void run() {
             System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "process"));
 
