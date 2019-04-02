@@ -50,7 +50,7 @@ public class ProcessHandler implements Handler {
     }
 
     private void read() throws IOException {
-        System.out.println("read " + Thread.currentThread().getName());
+        System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "read"));
 
         int readCount = socketChannel.read(input);
         if (0 < readCount) {
@@ -63,9 +63,7 @@ public class ProcessHandler implements Handler {
     }
 
     private void write() throws IOException {
-        System.out.println("write " + Thread.currentThread().getName());
-
-        System.out.print("write message: " + message);
+        System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "write"));
 
         ByteBuffer output = ByteBuffer.wrap(message.getBytes());
         socketChannel.write(output);
@@ -82,7 +80,7 @@ public class ProcessHandler implements Handler {
         }
 
         public synchronized void run() {
-            System.out.println("process " + Thread.currentThread().getName());
+            System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "process"));
 
             StringBuilder sb = new StringBuilder();
             input.flip();

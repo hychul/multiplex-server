@@ -31,7 +31,7 @@ public class Server {
     class Dispatcher implements Runnable {
         @Override
         public void run() {
-            System.out.println("listening port: \"" + serverSocketChannel.socket().getLocalPort() + "\"");
+            System.out.println(String.format("[%s] %s: %s", Thread.currentThread().getName(), "listening port", serverSocketChannel.socket().getLocalPort()));
             try {
                 while (!Thread.interrupted()) {
                     selector.select();
