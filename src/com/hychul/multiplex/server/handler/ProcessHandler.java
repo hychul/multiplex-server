@@ -19,7 +19,7 @@ public class ProcessHandler implements Handler {
         int threadCount = 0;
         @Override
         public Thread newThread(Runnable r) {
-            return new Thread(null, r, "reactive-thread-" + threadCount++, 0);
+            return new Thread(null, r, "reactive-thread-" + threadCount++);
         }
     });
 
@@ -31,10 +31,10 @@ public class ProcessHandler implements Handler {
     private ByteBuffer input = ByteBuffer.allocate(1024);
     private String message = "";
 
-    public ProcessHandler(Selector selector, SocketChannel c) throws IOException {
-        socketChannel = c;
-        socketChannel.configureBlocking(false);
-        selectionKey = socketChannel.register(selector, 0);
+    public ProcessHandler(Selector selector, SocketChannel socketChannel) throws IOException {
+        this.socketChannel = socketChannel;
+        this.socketChannel.configureBlocking(false);
+        selectionKey = this.socketChannel.register(selector, 0);
         selectionKey.attach(this);
         selectionKey.interestOps(SelectionKey.OP_READ);
         selector.wakeup();
