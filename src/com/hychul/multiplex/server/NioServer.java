@@ -13,8 +13,6 @@ public class NioServer {
     private final Selector selector;
     private final ServerSocketChannel serverSocketChannel;
 
-    private Thread dispatcherThread;
-
     public NioServer(int port, boolean asyncMode) throws IOException {
         selector = Selector.open();
         serverSocketChannel = ServerSocketChannel.open();
@@ -22,11 +20,10 @@ public class NioServer {
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT)
                            .attach(new AcceptHandler(selector, serverSocketChannel, asyncMode));
-        dispatcherThread = new Thread(null, new Dispatcher(), "dispatcher-thread");
     }
 
     public void start() {
-        dispatcherThread.start();
+        new Thread(null, new Dispatcher(), "dispatcher-thread").start();
     }
 
     class Dispatcher implements Runnable {

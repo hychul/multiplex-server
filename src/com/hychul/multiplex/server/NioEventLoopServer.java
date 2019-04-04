@@ -6,14 +6,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.hychul.multiplex.server.handler.AcceptHandler;
-import com.hychul.multiplex.server.handler.AsyncProcessHandler;
 import com.hychul.multiplex.server.handler.Handler;
 import com.hychul.multiplex.server.handler.SyncProcessHandler;
 
@@ -24,9 +19,8 @@ public class NioEventLoopServer {
     private final ServerSocketChannel serverSocketChannel;
 
     public NioEventLoopServer(int port) throws IOException {
-        bossGroup = new EventLoopGroup();
-        bossGroup.register(new EventLoop());
-        workerGroup = new EventLoopGroup();
+        bossGroup = new EventLoopGroup("boss-group", 1);
+        workerGroup = new EventLoopGroup("worker-group", Runtime.getRuntime().availableProcessors());
 
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
@@ -44,16 +38,11 @@ public class NioEventLoopServer {
                            });
     }
 
-    public void start() throws IOException {
+    public void start() {
         System.out.println(String.format("[%s] %s: %s", Thread.currentThread().getName(), "listening port", serverSocketChannel.socket().getLocalPort()));
 
-        new Thread(null, bossGroup.next(), "boss-thread").start();
-
-        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
-            EventLoop worker = new EventLoop();
-            workerGroup.register(worker);
-            new Thread(null, worker, "worker-thread-" + i).start();
-        }
+        bossGroup.run();
+        workerGroup.run();
     }
 
     class EventLoop implements Runnable {
@@ -93,16 +82,27 @@ public class NioEventLoopServer {
     }
 
     class EventLoopGroup {
-        Queue<EventLoop> eventLoopQueue = new LinkedList<>();
+        String name;
 
-        void register(EventLoop eventLoop) {
-            eventLoopQueue.add(eventLoop);
+        List<EventLoop> eventLoopList = new ArrayList<>();
+        int picker = 0;
+
+        EventLoopGroup(String name, int size) throws IOException {
+            this.name = name;
+            for (var i = 0; i < size; i++) {
+                eventLoopList.add(new EventLoop());
+            }
         }
 
         synchronized EventLoop next() {
-            EventLoop next = eventLoopQueue.poll();
-            eventLoopQueue.add(next);
-            return next;
+            picker = picker % eventLoopList.size();
+            return eventLoopList.get(picker++);
+        }
+
+        void run() {
+            for (var i = 0; i < eventLoopList.size(); i++) {
+                new Thread(null, eventLoopList.get(i), name + "-" + i).start();
+            }
         }
     }
 }
