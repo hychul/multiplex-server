@@ -20,22 +20,19 @@ public class AcceptHandler implements Handler {
         this.asyncMode = asyncMode;
     }
 
-    public void handle() {
-        try {
-            SocketChannel socketChannel = this.socketChannel.accept();
-            if (socketChannel == null) {
-                return;
-            }
-
-            if (asyncMode) {
-                new AsyncProcessHandler(selector, socketChannel);
-            } else {
-                new SyncProcessHandler(selector, socketChannel);
-            }
-
-            System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "new client accepted"));
-        } catch (IOException ex) {
-            ex.printStackTrace();
+    @Override
+    public void handle() throws IOException {
+        SocketChannel socketChannel = this.socketChannel.accept();
+        if (socketChannel == null) {
+            return;
         }
+
+        if (asyncMode) {
+            new AsyncProcessHandler(selector, socketChannel);
+        } else {
+            new SyncProcessHandler(selector, socketChannel);
+        }
+
+        System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "new client accepted"));
     }
 }

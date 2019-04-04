@@ -20,7 +20,8 @@ public class NioServer {
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT).attach(new AcceptHandler(selector, serverSocketChannel, asyncMode));
+        serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT)
+                           .attach(new AcceptHandler(selector, serverSocketChannel, asyncMode));
         dispatcherThread = new Thread(null, new Dispatcher(), "dispatcher-thread");
     }
 
