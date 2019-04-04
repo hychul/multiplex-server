@@ -50,7 +50,7 @@ public class NioEventLoopServer {
         new Thread(null, bossGroup.next(), "boss-thread").start();
 
         for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
-            EventLoop worker = new EventLoop(Selector.open());
+            EventLoop worker = new EventLoop();
             workerGroup.register(worker);
             new Thread(null, worker, "worker-thread-" + i).start();
         }
@@ -61,10 +61,6 @@ public class NioEventLoopServer {
 
         EventLoop() throws IOException {
             selector = Selector.open();
-        }
-
-        EventLoop(Selector selector) {
-            this.selector = selector;
         }
 
         @Override
