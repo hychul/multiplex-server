@@ -8,6 +8,7 @@ import java.nio.channels.ServerSocketChannel;
 
 import com.hychul.multiplex.server.handler.AcceptHandler;
 import com.hychul.multiplex.server.handler.Handler;
+import com.hychul.multiplex.server.handler.ProcessHandlerType;
 
 public class NioServer {
     private final Selector selector;
@@ -19,7 +20,9 @@ public class NioServer {
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT)
-                           .attach(new AcceptHandler(selector, serverSocketChannel, asyncMode));
+                           .attach(new AcceptHandler(() -> selector, serverSocketChannel, asyncMode ?
+                                                                                          ProcessHandlerType.Async :
+                                                                                          ProcessHandlerType.Sync));
     }
 
     public void start() {

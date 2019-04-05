@@ -4,20 +4,19 @@ import java.io.IOException;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.function.Supplier;
+
+import reactor.core.publisher.Mono;
 
 public class AcceptHandler implements Handler {
-    private final Selector selector;
+    private final Supplier<Selector> selectorSupplier;
     private final ServerSocketChannel socketChannel;
-    private final boolean asyncMode;
+    private final ProcessHandlerType processHandlerType;
 
-    public AcceptHandler(Selector selector, ServerSocketChannel socketChannel) {
-        this(selector, socketChannel, false);
-    }
-
-    public AcceptHandler(Selector selector, ServerSocketChannel socketChannel, boolean asyncMode) {
-        this.selector = selector;
+    public AcceptHandler(Supplier<Selector> selectorSupplier, ServerSocketChannel socketChannel, ProcessHandlerType processHandlerType) {
+        this.selectorSupplier = selectorSupplier;
         this.socketChannel = socketChannel;
-        this.asyncMode = asyncMode;
+        this.processHandlerType = processHandlerType;
     }
 
     @Override
@@ -27,10 +26,16 @@ public class AcceptHandler implements Handler {
             return;
         }
 
-        if (asyncMode) {
-            new AsyncProcessHandler(selector, socketChannel);
-        } else {
-            new SyncProcessHandler(selector, socketChannel);
+        switch (processHandlerType) {
+            case Sync:
+                new SyncProcessHandler(selectorSupplier.get(), socketChannel);
+                break;
+            case Async:
+                new AsyncProcessHandler(selectorSupplier.get(), socketChannel);
+                break;
+            case Reactor:
+                new ReactorProcessHandler(selectorSupplier.get(), socketChannel, it -> Mono.just(it).log());
+                break;
         }
 
         System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "new client accepted"));

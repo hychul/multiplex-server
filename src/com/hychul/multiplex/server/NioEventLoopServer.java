@@ -9,7 +9,9 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hychul.multiplex.server.handler.AcceptHandler;
 import com.hychul.multiplex.server.handler.Handler;
+import com.hychul.multiplex.server.handler.ProcessHandlerType;
 import com.hychul.multiplex.server.handler.ReactorProcessHandler;
 import com.hychul.multiplex.server.handler.SyncProcessHandler;
 
@@ -29,20 +31,9 @@ public class NioEventLoopServer {
         serverSocketChannel.socket().bind(new InetSocketAddress(port));
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.register(bossGroup.next().selector, SelectionKey.OP_ACCEPT)
-                           .attach((Handler) () -> {
-                               SocketChannel socketChannel = this.serverSocketChannel.accept();
-                               if (socketChannel == null) {
-                                   return;
-                               }
-
-                               if (reactorMode) {
-                                   new ReactorProcessHandler(workerGroup.next().selector, socketChannel, it -> Mono.just(it).log());
-                               } else {
-                                   new SyncProcessHandler(workerGroup.next().selector, socketChannel);
-                               }
-
-                               System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "new client accepted"));
-                           });
+                           .attach(new AcceptHandler(() -> workerGroup.next().selector,
+                                                     serverSocketChannel,
+                                                     reactorMode ? ProcessHandlerType.Reactor : ProcessHandlerType.Sync));
     }
 
     public void start() {
