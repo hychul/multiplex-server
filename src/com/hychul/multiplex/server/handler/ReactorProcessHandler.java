@@ -9,23 +9,28 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.function.Function;
 
-public class SyncProcessHandler implements Handler {
+import reactor.core.publisher.Mono;
+
+public class ReactorProcessHandler implements Handler {
     private final SocketChannel socketChannel;
     private final SelectionKey selectionKey;
 
     private HandlerState state = READING;
 
     private ByteBuffer input = ByteBuffer.allocate(1024);
+    private Function<String, Mono<String>> function;
     private String message = "";
 
-    public SyncProcessHandler(Selector selector, SocketChannel socketChannel) throws IOException {
+    public ReactorProcessHandler(Selector selector, SocketChannel socketChannel, Function<String, Mono<String>> function) throws IOException {
         this.socketChannel = socketChannel;
         this.socketChannel.configureBlocking(false);
         selectionKey = this.socketChannel.register(selector, 0);
         selectionKey.attach(this);
         selectionKey.interestOps(SelectionKey.OP_READ);
         selector.wakeup();
+        this.function = function;
     }
 
     @Override
@@ -60,9 +65,12 @@ public class SyncProcessHandler implements Handler {
         System.arraycopy(array, 0, subStringBytes, 0, readCount);
         sb.append(new String(subStringBytes));
         input.clear();
-        message = sb.toString();
-
-        state = WRITING;
+        var param = sb.toString();
+        Mono<String> result = function.apply(param);
+        result.subscribe(it -> {
+            message = it;
+            state = WRITING;
+        });
     }
 
     private void write() throws IOException {

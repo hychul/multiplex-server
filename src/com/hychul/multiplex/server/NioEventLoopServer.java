@@ -10,7 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hychul.multiplex.server.handler.Handler;
+import com.hychul.multiplex.server.handler.ReactorProcessHandler;
 import com.hychul.multiplex.server.handler.SyncProcessHandler;
+
+import reactor.core.publisher.Mono;
 
 public class NioEventLoopServer {
     private final EventLoopGroup bossGroup;
@@ -18,7 +21,7 @@ public class NioEventLoopServer {
 
     private final ServerSocketChannel serverSocketChannel;
 
-    public NioEventLoopServer(int port) throws IOException {
+    public NioEventLoopServer(int port, boolean reactorMode) throws IOException {
         bossGroup = new EventLoopGroup("boss-group", 1);
         workerGroup = new EventLoopGroup("worker-group", Runtime.getRuntime().availableProcessors());
 
@@ -32,7 +35,11 @@ public class NioEventLoopServer {
                                    return;
                                }
 
-                               new SyncProcessHandler(workerGroup.next().selector, socketChannel);
+                               if (reactorMode) {
+                                   new ReactorProcessHandler(workerGroup.next().selector, socketChannel, it -> Mono.just(it).log());
+                               } else {
+                                   new SyncProcessHandler(workerGroup.next().selector, socketChannel);
+                               }
 
                                System.out.println(String.format("[%s] %s", Thread.currentThread().getName(), "new client accepted"));
                            });
