@@ -1,21 +1,16 @@
 package com.hychul.multiplex.server;
 
+import com.hychul.multiplex.server.handler.AcceptHandler;
+import com.hychul.multiplex.server.handler.Handler;
+import com.hychul.multiplex.server.handler.ProcessHandlerType;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.hychul.multiplex.server.handler.AcceptHandler;
-import com.hychul.multiplex.server.handler.Handler;
-import com.hychul.multiplex.server.handler.ProcessHandlerType;
-import com.hychul.multiplex.server.handler.ReactorProcessHandler;
-import com.hychul.multiplex.server.handler.SyncProcessHandler;
-
-import reactor.core.publisher.Mono;
 
 public class NioEventLoopServer {
     private final EventLoopGroup bossGroup;
